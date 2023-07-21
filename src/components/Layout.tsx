@@ -10,12 +10,8 @@ const Layout: FC<layoutInterface> = ({
   children,
   activePage,
 }) => {
-  const [mainHeight, setMainHeight] = useState<number>(0);
   const { user, authenticated } = GetUser();
-  useEffect(() => {
-    const height = window.innerHeight;
-    setMainHeight(height - 100 - 20);
-  });
+
   const style = {
     backgroundColor: backgroundColor,
     color: color,
@@ -49,8 +45,7 @@ const Layout: FC<layoutInterface> = ({
         <main
           className={`min-w-[1400px] ${
             active ? "ml-[320px]" : "mx-auto"
-          } pb-24 pt-10 overflow-x-scroll overflow-y-hidden relative z-40 scrollbar`}
-          style={{ height: `${mainHeight}px` }}
+          } pt-10 relative z-40`}
         >
           {children}
         </main>

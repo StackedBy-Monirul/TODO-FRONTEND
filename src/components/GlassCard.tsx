@@ -4,7 +4,9 @@ import { Cookies } from "react-cookie";
 import { AiFillEdit, AiOutlineFileAdd } from "react-icons/ai";
 import { BsThreeDots, BsTrashFill } from "react-icons/bs";
 import GlassItem from "./GlassItem";
-import { BiSolidCommentAdd } from "react-icons/bi";
+import { getAPI, postAPI } from "./Api";
+import { Draggable, Droppable } from "react-beautiful-dnd";
+import todoInterface from "../interfaces/todoInterface";
 
 const GlassCard: FC<{
   children?: ReactNode;
@@ -12,56 +14,36 @@ const GlassCard: FC<{
   title: string;
   id?: string;
   user?: object | any;
-}> = ({ children, className, title, id, user }) => {
+  todo?: todoInterface[] | any;
+}> = ({ children, className, title, id, user, todo }) => {
   const [active, setActive] = useState<boolean>(false);
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<todoInterface[]>([]);
   const [todoActive, setTodoActive] = useState<boolean>(false);
   const [todoName, setTodoName] = useState<string>("");
   const cookie = new Cookies();
-  const token = cookie.get("todo-token") || null;
-  const sectionHandler = async () => {
-    await axios
-      .get(`http://localhost:8000/api/v1/todo/section/${id}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token && token.token}`,
-        },
-      })
-      .then((response) => {
-        if (response.data && response.data.status === 200) {
-          setData(response.data.data);
-        }
-      })
-      .catch((error) => {});
+  const token: any = cookie.get("todo-token") || "";
+
+  const sectionHandler = (todo: todoInterface[]) => {
+    setData(todo);
   };
+
   const TodoSubmitHandler = async () => {
-    await axios
-      .post(
-        `http://localhost:8000/api/v1/todo/create`,
-        {
-          name: todoName,
-          section: id,
-          user: user._id,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token && token.token}`,
-          },
-        }
-      )
-      .then((response) => {
-        if (response.data && response.data.status === 200) {
-          setData([...data, response.data.data[0]]);
-          setTodoActive(!todoActive);
-          setTodoName("");
-        }
-      })
-      .catch((error) => {});
+    postAPI("todo/create", token && token.token, {
+      name: todoName,
+      section: id,
+      user: user._id,
+    }).then((res) => {
+      if (res.status === 200 || (res.data && res.data.status === 200)) {
+        setData([...data, res.data.data[0]]);
+        setTodoActive(!todoActive);
+        setTodoName("");
+      }
+    });
   };
+
   useEffect(() => {
-    sectionHandler();
-  }, []);
+    sectionHandler(todo);
+  }, [title]);
   return (
     <div
       className={`backdrop-blur-[44px] min-w-[400px] rounded-lg text-white shadow-[0px_2px_5px_1px_rgba(255,255,255,0.30)_inset] ${
@@ -76,7 +58,7 @@ const GlassCard: FC<{
         />
         <div
           className={`absolute top-12 -right-10 w-[150px] bg-[#1d1d1d8a] ${
-            active ? "h-auto opacity-1" : "h-0 opacity-0"
+            active ? "h-auto block" : "h-0 hidden"
           } transition-all duration-300`}
         >
           <ul>
@@ -92,9 +74,54 @@ const GlassCard: FC<{
         </div>
       </div>
       <div className="pb-5 px-5">
-        {data.map((item, index) => {
-          return <GlassItem key={index} title={item.name} />;
-        })}
+        <Droppable
+          droppableId={`${id}`}
+          type="ITEM"
+          renderClone={(provided, snapshot, rubric) => (
+            <div
+              {...provided.draggableProps}
+              {...provided.dragHandleProps}
+              ref={provided.innerRef}
+            >
+              <GlassItem item={data[rubric.source.index]} />
+            </div>
+          )}
+        >
+          {(provided, snapshot) => (
+            <>
+              <div
+                ref={provided.innerRef}
+                style={{
+                  backgroundColor: snapshot.isDraggingOver
+                    ? "#00000042"
+                    : "transparent",
+                  minHeight: snapshot.isDraggingOver ? "50px" : "10px",
+                }}
+                {...provided.droppableProps}
+              >
+                {data &&
+                  Object.keys(data).map((item, index) => (
+                    <Draggable
+                      draggableId={`draggableItem-${data[index]._id}`}
+                      index={index}
+                      key={data[index]._id}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                        >
+                          <GlassItem item={data[index]} />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+              </div>
+              {provided.placeholder}
+            </>
+          )}
+        </Droppable>
       </div>
       <div className="px-5 pb-5">
         {todoActive ? (

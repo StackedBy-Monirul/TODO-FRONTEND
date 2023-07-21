@@ -2,6 +2,7 @@ import axios from "axios";
 import { navigate } from "gatsby";
 import React, { FC, useEffect, useState } from "react";
 import { Cookies, useCookies } from "react-cookie";
+import { postAPI } from "../components/Api";
 
 const Login: FC = () => {
   const [email, setEmail] = useState<string>("");
@@ -9,28 +10,23 @@ const Login: FC = () => {
   const [error, setError] = useState<string>("");
   const cookie = new Cookies();
   const loginHandler = () => {
-    axios
-      .post("http://localhost:8000/api/v1/auth/login", {
-          email: email,
-          password: password,
-        },{
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-      .then((response) => {
-        const token = response.data.token;
-        const expire = new Date(Date.now() + 2 * 60 * 60 * 1000)
+    postAPI("auth/login", null, {
+      email: email,
+      password: password,
+    }).then((res) => {
+      if (res.status === 200 || (res.data && res.data.status === 200)) {
+        const token = res.data.token;
+        const expire = new Date(Date.now() + 2 * 60 * 60 * 1000);
         const data: string = JSON.stringify({
           token: token,
-          expire: expire
-        }) 
+          expire: expire,
+        });
         cookie.set("todo-token", data, { path: "/", expires: expire });
         navigate("/");
-      })
-      .catch((error) => {
-        setError(error.response.data.message);
-      });
+      } else {
+        setError(res.data.message);
+      }
+    });
   };
   useEffect(() => {
     const token = cookie.get("todo-token") || null;
@@ -38,7 +34,7 @@ const Login: FC = () => {
       const expirationDate = new Date(token.expire);
       const currentDate = new Date();
       if (expirationDate > currentDate) {
-        navigate('/')
+        navigate("/");
       }
     }
   });

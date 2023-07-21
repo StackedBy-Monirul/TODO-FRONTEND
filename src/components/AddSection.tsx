@@ -33,7 +33,7 @@ const AddSection: FC<{
       .catch((error) => {});
   };
   return (
-    <div className="p-3 min-w-[400px]">
+    <div className="p-3 min-w-[400px] inline-block align-top">
       {active ? (
         <>
           <input
