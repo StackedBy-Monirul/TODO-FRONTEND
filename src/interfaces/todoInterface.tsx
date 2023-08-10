@@ -12,4 +12,8 @@ interface todoInterface {
   level?: string;
   sorting?: number;
 }
-export default todoInterface;
+interface dataMapInterface {
+  id: string;
+  todos: todoInterface[];
+}
+export { todoInterface, dataMapInterface };

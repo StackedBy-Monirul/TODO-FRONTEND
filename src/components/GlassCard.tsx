@@ -6,7 +6,7 @@ import { BsThreeDots, BsTrashFill } from "react-icons/bs";
 import GlassItem from "./GlassItem";
 import { getAPI, postAPI } from "./Api";
 import { Draggable, Droppable } from "react-beautiful-dnd";
-import todoInterface from "../interfaces/todoInterface";
+import { todoInterface } from "../interfaces/todoInterface";
 
 const GlassCard: FC<{
   children?: ReactNode;
@@ -14,8 +14,21 @@ const GlassCard: FC<{
   title: string;
   id?: string;
   user?: object | any;
-  todo?: todoInterface[] | any;
-}> = ({ children, className, title, id, user, todo }) => {
+  todos?: todoInterface[] | any;
+  index: number;
+  update: (id: todoInterface | any) => void;
+  height: number;
+}> = ({
+  children,
+  className,
+  title,
+  id,
+  user,
+  todos,
+  index,
+  update,
+  height,
+}) => {
   const [active, setActive] = useState<boolean>(false);
   const [data, setData] = useState<todoInterface[]>([]);
   const [todoActive, setTodoActive] = useState<boolean>(false);
@@ -23,8 +36,8 @@ const GlassCard: FC<{
   const cookie = new Cookies();
   const token: any = cookie.get("todo-token") || "";
 
-  const sectionHandler = (todo: todoInterface[]) => {
-    setData(todo);
+  const sectionHandler = (todos: todoInterface[]) => {
+    setData(todos);
   };
 
   const TodoSubmitHandler = async () => {
@@ -35,133 +48,163 @@ const GlassCard: FC<{
     }).then((res) => {
       if (res.status === 200 || (res.data && res.data.status === 200)) {
         setData([...data, res.data.data[0]]);
+        update([...data, res.data.data[0]]);
+        todos = [...data, res.data.data[0]];
         setTodoActive(!todoActive);
         setTodoName("");
       }
     });
   };
 
+  const deleteHandler = (e: string) => {
+    const oldData = [...data];
+    const dataIndex = data.findIndex(
+      (item) => item._id.toString() === e?.toString()
+    );
+
+    if (dataIndex) {
+      oldData.splice(dataIndex, 1);
+    }
+    setData(oldData);
+    update(oldData);
+  };
+
   useEffect(() => {
-    sectionHandler(todo);
-  }, [title]);
+    sectionHandler(todos);
+  }, [todos, id]);
   return (
-    <div
-      className={`backdrop-blur-[44px] min-w-[400px] rounded-lg text-white shadow-[0px_2px_5px_1px_rgba(255,255,255,0.30)_inset] ${
-        className && className
-      }`}
-    >
-      <div className="p-5 flex items-start justify-between relative">
-        <p className="text-base font-bold pr-5">{title}</p>
-        <BsThreeDots
-          className="text-white text-3xl cursor-pointer"
-          onClick={() => setActive(!active)}
-        />
+    <Draggable draggableId={`draggable-${id}`} index={+index}>
+      {(provided) => (
         <div
-          className={`absolute top-12 -right-10 w-[150px] bg-[#1d1d1d8a] ${
-            active ? "h-auto block" : "h-0 hidden"
-          } transition-all duration-300`}
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          className={`inline-block align-top mx-2 backdrop-blur-[44px] min-w-[400px] rounded-lg text-white shadow-[0px_2px_5px_1px_rgba(255,255,255,0.30)_inset] ${
+            className && className
+          }`}
         >
-          <ul>
-            <li className="px-5 flex items-center gap-2 py-4 border-b cursor-pointer">
-              <AiFillEdit className="text-white text-base" />
-              Edit
-            </li>
-            <li className="px-5 flex items-center gap-2 py-4 border-b cursor-pointer">
-              <BsTrashFill className="text-white text-base" />
-              Delete
-            </li>
-          </ul>
-        </div>
-      </div>
-      <div className="pb-5 px-5">
-        <Droppable
-          droppableId={`${id}`}
-          type="ITEM"
-          renderClone={(provided, snapshot, rubric) => (
+          <div className="p-5 flex items-start justify-between relative">
+            <p className="text-base font-bold pr-5">{title}</p>
+            <BsThreeDots
+              className="text-white text-3xl cursor-pointer"
+              onClick={() => setActive(!active)}
+            />
             <div
-              {...provided.draggableProps}
-              {...provided.dragHandleProps}
-              ref={provided.innerRef}
+              className={`absolute top-12 -right-10 w-[150px] bg-[#1d1d1d8a] ${
+                active ? "h-auto block" : "h-0 hidden"
+              } transition-all duration-300`}
             >
-              <GlassItem item={data[rubric.source.index]} />
+              <ul>
+                <li className="px-5 flex items-center gap-2 py-4 border-b cursor-pointer">
+                  <AiFillEdit className="text-white text-base" />
+                  Edit
+                </li>
+                <li className="px-5 flex items-center gap-2 py-4 border-b cursor-pointer">
+                  <BsTrashFill className="text-white text-base" />
+                  Delete
+                </li>
+              </ul>
             </div>
-          )}
-        >
-          {(provided, snapshot) => (
-            <>
-              <div
-                ref={provided.innerRef}
-                style={{
-                  backgroundColor: snapshot.isDraggingOver
-                    ? "#00000042"
-                    : "transparent",
-                  minHeight: snapshot.isDraggingOver ? "50px" : "10px",
-                }}
-                {...provided.droppableProps}
-              >
-                {data &&
-                  Object.keys(data).map((item, index) => (
-                    <Draggable
-                      draggableId={`draggableItem-${data[index]._id}`}
-                      index={index}
-                      key={data[index]._id}
-                    >
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                        >
-                          <GlassItem item={data[index]} />
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-              </div>
-              {provided.placeholder}
-            </>
-          )}
-        </Droppable>
-      </div>
-      <div className="px-5 pb-5">
-        {todoActive ? (
-          <>
-            <div>
-              <input
-                className="w-full border rounded px-2 bg-transparent py-2"
-                placeholder="+ Add a card"
-                onChange={(e) => setTodoName(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center justify-between mt-3">
-              <button
-                className="py-2 px-10 bg-teal-400 text-white text-base font-bold rounded"
-                onClick={TodoSubmitHandler}
-              >
-                Submit
-              </button>
-              <button
-                className="py-2 px-10 bg-red-500 text-white text-base font-bold rounded"
-                onClick={() => {
-                  setTodoActive(!todoActive);
-                  setTodoName("");
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </>
-        ) : (
-          <div
-            className="bg-[#0000009a] py-2 flex items-center gap-5 text-white w-full justify-center cursor-pointer rounded"
-            onClick={() => setTodoActive(!todoActive)}
-          >
-            <AiOutlineFileAdd className="text-2xl text-white" />
-            <p>Add New Task</p>
           </div>
-        )}
-      </div>
-    </div>
+          <div className={`pb-5 px-5`}>
+            <Droppable
+              droppableId={`${id}`}
+              type="ITEM"
+              renderClone={(provide, snapshot, rubric) => (
+                <div
+                  {...provide.draggableProps}
+                  {...provide.dragHandleProps}
+                  ref={provide.innerRef}
+                  className="mb-5"
+                >
+                  <GlassItem
+                    item={data && data[rubric.source.index]}
+                    delHandle={(e) => deleteHandler(e)}
+                  />
+                </div>
+              )}
+            >
+              {(provide, snapshot) => (
+                <div
+                  ref={provide.innerRef}
+                  className={`overflow-y-auto scrollbar1`}
+                  style={{
+                    backgroundColor: snapshot.isDraggingOver
+                      ? "#00000042"
+                      : "transparent",
+                    minHeight: snapshot.isDraggingOver ? "50px" : "10px",
+                    maxHeight: `${height - 190}px`,
+                  }}
+                  {...provide.droppableProps}
+                >
+                  {data &&
+                    data.map((item, index) => (
+                      <Draggable
+                        draggableId={`draggableItem-${item._id}`}
+                        index={index}
+                        key={item._id}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className="mb-5 "
+                          >
+                            <GlassItem
+                              item={item}
+                              delHandle={(e) => deleteHandler(e)}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                  {provide.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </div>
+          <div className="px-5 pb-5">
+            {todoActive ? (
+              <>
+                <div>
+                  <input
+                    className="w-full border rounded px-2 bg-transparent py-2"
+                    placeholder="+ Add a card"
+                    onChange={(e) => setTodoName(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-3">
+                  <button
+                    className="py-2 px-10 bg-teal-400 text-white text-base font-bold rounded"
+                    onClick={TodoSubmitHandler}
+                  >
+                    Submit
+                  </button>
+                  <button
+                    className="py-2 px-10 bg-red-500 text-white text-base font-bold rounded"
+                    onClick={() => {
+                      setTodoActive(!todoActive);
+                      setTodoName("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div
+                className="bg-[#0000009a] py-2 flex items-center gap-5 text-white w-full justify-center cursor-pointer rounded"
+                onClick={() => setTodoActive(!todoActive)}
+              >
+                <AiOutlineFileAdd className="text-2xl text-white" />
+                <p>Add New Task</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </Draggable>
   );
 };
 

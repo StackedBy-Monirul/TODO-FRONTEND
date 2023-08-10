@@ -24,7 +24,7 @@ const Login: FC = () => {
         cookie.set("todo-token", data, { path: "/", expires: expire });
         navigate("/");
       } else {
-        setError(res.data.message);
+        setError(res.data && res.data.message);
       }
     });
   };

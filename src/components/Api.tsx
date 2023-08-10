@@ -14,7 +14,7 @@ if (getToken) {
 }
 
 let postConfig: Params = {
-  baseUrl: "http://localhost:8000/api/v1/",
+  baseUrl: "http://localhost:8000/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
@@ -54,7 +54,7 @@ const postAPI = async (
     });
 };
 let getConfig: Params = {
-  baseUrl: "http://localhost:8000/api/v1/",
+  baseUrl: "http://localhost:8000/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
@@ -90,7 +90,7 @@ const getAPI = async (url: string, token: string): Promise<any> => {
 };
 
 let putConfig: Params = {
-  baseUrl: "http://localhost:8000/api/v1/",
+  baseUrl: "http://localhost:8000/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
@@ -127,7 +127,7 @@ const putAPI = async (url: string, token: string, data: any): Promise<any> => {
 };
 
 let deleteConfig: Params = {
-  baseUrl: "http://localhost:8000/api/v1/",
+  baseUrl: "http://localhost:8000/api/v1",
   headers: {
     "Content-Type": "application/json",
   },

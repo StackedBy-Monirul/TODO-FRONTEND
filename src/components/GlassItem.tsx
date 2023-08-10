@@ -1,14 +1,18 @@
 import React, { FC, useState } from "react";
-import { AiFillEdit } from "react-icons/ai";
+import { AiFillDelete, AiFillEdit } from "react-icons/ai";
 import { BiSolidSend } from "react-icons/bi";
 import { FaDeleteLeft } from "react-icons/fa6";
-import { putAPI } from "./Api";
+import { deleteAPI, putAPI } from "./Api";
 import { Cookies } from "react-cookie";
 
-const GlassItem: FC<{ item?: object | any }> = ({ item }) => {
+const GlassItem: FC<{
+  item?: object | any;
+  delHandle: (e: string) => void;
+}> = ({ item, delHandle }) => {
   const [active, setActive] = useState<boolean>(false);
   const [data, setData] = useState<any>(item);
   const [name, setName] = useState<string>(item.name);
+  const [del, setDel] = useState<boolean>(false);
   const cookie = new Cookies();
   const token: any = cookie.get("todo-token") || "";
 
@@ -23,8 +27,19 @@ const GlassItem: FC<{ item?: object | any }> = ({ item }) => {
       }
     });
   };
+
+  const deleteHandler = () => {
+    deleteAPI(`todo/${data._id}`, token && token.token).then((res) => {
+      if (res.data && res.data.status === 200) {
+        delHandle(res.data.data[0].id);
+        setActive(!active);
+        setDel(!del);
+      }
+    });
+  };
+
   return !active ? (
-    <div className="p-2 bg-darkop rounded-md group mb-5 cursor-pointer">
+    <div className="p-2 bg-darkop rounded-md group cursor-pointer">
       <div className="flex items-center justify-between gap-2">
         <p className="text-base text-[#e0e0e0]">{data.name}</p>
         <div
@@ -39,31 +54,65 @@ const GlassItem: FC<{ item?: object | any }> = ({ item }) => {
       </div>
     </div>
   ) : (
-    <div className="p-2 bg-darkop rounded-md group mb-5 cursor-pointer">
-      <div className="flex items-center justify-between gap-2">
-        <input
-          className="text-base text-[#e0e0e0] w-full p-2 rounded bg-transparent border"
-          defaultValue={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <div>
-          <div
-            className="p-2 rounded bg-teal-400 opacity-100 transition-all duration-300 cursor-pointer mb-2"
-            onClick={editHandler}
-          >
-            <BiSolidSend className="text-white text-base opacity-100 transition-all duration-300" />
-          </div>
-          <div
-            className="p-2 rounded bg-red-400 opacity-100 transition-all duration-300 cursor-pointer"
-            onClick={() => {
-              setActive(!active);
-              setName("");
-            }}
-          >
-            <FaDeleteLeft className="text-white text-base opacity-100 transition-all duration-300" />
+    <div className="p-2 bg-darkop rounded-md group cursor-pointer relative">
+      {!del ? (
+        <div className="items-center justify-between gap-2">
+          <input
+            className="text-base text-[#e0e0e0] w-[89%] p-2 rounded bg-transparent border"
+            defaultValue={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <div className="flex items-start justify-center gap-3 mt-2">
+            <div
+              className="p-2 rounded bg-teal-400 opacity-100 transition-all duration-300 cursor-pointer mb-2"
+              onClick={editHandler}
+            >
+              <BiSolidSend className="text-white text-base opacity-100 transition-all duration-300" />
+            </div>
+            <div
+              className="p-2 rounded bg-red-400 opacity-100 transition-all duration-300 cursor-pointer mb-2"
+              onClick={() => {
+                setActive(!active);
+                setName("");
+              }}
+            >
+              <FaDeleteLeft className="text-white text-base opacity-100 transition-all duration-300" />
+            </div>
+            <div
+              className="p-2 rounded bg-red-400 opacity-100 transition-all duration-300 cursor-pointer"
+              onClick={() => {
+                setDel(!del);
+                setName(name);
+              }}
+            >
+              <AiFillDelete className="text-white text-base opacity-100 transition-all duration-300" />
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center justify-center">
+          <div>
+            <p className="text-white text-center">Confirm Delete</p>
+            <div className="flex items-center gap-4">
+              <button
+                className="text-white bg-teal-500 font-semibold px-5 py-[2px] rounded"
+                onClick={deleteHandler}
+              >
+                Confirm
+              </button>
+              <button
+                className="text-white bg-red-500 font-semibold px-5 py-[2px] rounded"
+                onClick={() => {
+                  setDel(!del);
+                  setActive(!active);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
