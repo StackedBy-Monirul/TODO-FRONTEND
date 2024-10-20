@@ -1,5 +1,5 @@
 import projectInterface from "./projectInterface";
-import todoInterface from "./todoInterface";
+import { todoInterface } from "./todoInterface";
 
 interface sectionInterface {
   _id?: string;

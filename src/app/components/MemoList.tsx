@@ -10,7 +10,7 @@ const MemoList: FC<{
   return (
     dataMap &&
     dataMap.map((data, index) => (
-      <GlassItem item={data} index={index} key={data._id} />
+      <GlassItem item={data} key={data._id} />
     ))
   );
 });

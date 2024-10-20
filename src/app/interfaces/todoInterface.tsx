@@ -16,4 +16,4 @@ interface dataMapInterface {
   id: string;
   todos: todoInterface[];
 }
-export { todoInterface, dataMapInterface };
+export type { todoInterface, dataMapInterface };

@@ -21,7 +21,7 @@ const MemoCard: FC<{
       index={index}
       todos={data?.todos}
     />
-  );
+  )
 });
 
 export default MemoCard;

@@ -1,9 +1,10 @@
 import axios from 'axios';
-import { navigate } from 'gatsby';
-import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react'
 import { Cookies } from 'react-cookie';
 
 const GetUser = () => {
+  const navigate = useRouter()
   const [user, setUser] = useState<any|null>(null);
   const [authenticated, setAuthenticated] = useState(false);
   useEffect(() => {
@@ -23,10 +24,10 @@ const GetUser = () => {
           .catch((error) => {
             setUser(null);
             setAuthenticated(false);
-            navigate('/login')
+            navigate.push('/login')
           });
     } else {
-      navigate('/login')
+      navigate.push('/login')
     }
   }, [])
   return {user, authenticated}
