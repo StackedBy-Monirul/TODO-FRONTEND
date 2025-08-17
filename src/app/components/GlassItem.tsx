@@ -59,22 +59,22 @@ const GlassItem: FC<{
       }
    };
 
-   const isOverdue = data.dueDate && new Date(data.dueDate) < new Date();
+   const isOverdue = data?.dueDate && new Date(data.dueDate) < new Date();
 
    return !active ? (
       <>
          <div 
-            className={`p-3 bg-darkop rounded-md group cursor-pointer duration-300 border-l-4 ${getPriorityColor(data.priority)} border border-transparent hover:border-white hover:shadow-lg backdrop-blur-sm`}
+            className={`p-3 bg-darkop rounded-md group cursor-pointer duration-300 border-l-4 ${getPriorityColor(data?.priority || 'medium')} border border-transparent hover:border-white hover:shadow-lg backdrop-blur-sm`}
             onClick={() => setIsModalOpen(true)}
          >
             <div className="flex items-start justify-between gap-2 mb-2">
-               <p className="text-base text-[#e0e0e0] font-medium leading-tight">{data.name}</p>
+               <p className="text-base text-[#e0e0e0] font-medium leading-tight">{data?.name || 'Untitled Task'}</p>
                <div
                   className="p-1 rounded bg-[#50505036] group-hover:opacity-100 opacity-0 transition-all duration-300 cursor-pointer"
                   onClick={(e) => {
                      e.stopPropagation();
                      setActive(!active);
-                     setName(data.name);
+                     setName(data?.name || '');
                   }}>
                   <AiFillEdit className="text-white text-sm group-hover:opacity-100 opacity-0 transition-all duration-300" />
                </div>
@@ -83,21 +83,21 @@ const GlassItem: FC<{
             {/* Card Footer with metadata */}
             <div className="flex items-center justify-between text-xs text-gray-400 mt-2">
                <div className="flex items-center space-x-3">
-                  {data.dueDate && (
+                  {data?.dueDate && (
                      <div className={`flex items-center space-x-1 ${isOverdue ? 'text-red-400' : 'text-gray-400'}`}>
                         <AiOutlineCalendar size={12} />
                         <span>{new Date(data.dueDate).toLocaleDateString()}</span>
                      </div>
                   )}
                   
-                  {data.comments && data.comments.length > 0 && (
+                  {data?.comments && data.comments.length > 0 && (
                      <div className="flex items-center space-x-1">
                         <AiOutlineComment size={12} />
                         <span>{data.comments.length}</span>
                      </div>
                   )}
                   
-                  {data.assignedUsers && data.assignedUsers.length > 0 && (
+                  {data?.assignedUsers && data.assignedUsers.length > 0 && (
                      <div className="flex items-center space-x-1">
                         <AiOutlineUser size={12} />
                         <span>{data.assignedUsers.length}</span>
@@ -105,7 +105,7 @@ const GlassItem: FC<{
                   )}
                </div>
                
-               {data.priority && (
+               {data?.priority && (
                   <Badge size="xs" className={`${getPriorityColor(data.priority).replace('border-l-', 'bg-')} text-white`}>
                      {data.priority}
                   </Badge>
@@ -113,12 +113,12 @@ const GlassItem: FC<{
             </div>
             
             {/* Assigned users avatars */}
-            {data.assignedUsers && data.assignedUsers.length > 0 && (
+            {data?.assignedUsers && data.assignedUsers.length > 0 && (
                <div className="flex -space-x-2 mt-2">
                   {data.assignedUsers.slice(0, 3).map((user: any, index: number) => (
                      <Avatar
-                        key={user._id}
-                        img={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`}
+                        key={user?._id || index}
+                        img={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name || 'User'}`}
                         size="xs"
                         rounded
                         className="border-2 border-gray-800"
@@ -160,7 +160,7 @@ const GlassItem: FC<{
                         className="p-2 rounded bg-gray-500 hover:bg-gray-600 transition-all duration-300 cursor-pointer"
                         onClick={() => {
                            setActive(!active);
-                           setName(data.name);
+                           setName(data?.name || '');
                         }}>
                         <FaDeleteLeft className="text-white text-sm" />
                      </button>

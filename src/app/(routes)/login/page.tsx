@@ -25,20 +25,30 @@ const login = () => {
             cookie.set("todo-token", data, { path: "/", expires: expire });
             navigate.push("/");
          } else {
-            setError(res.data && res.data.message);
+            setError(res.data?.message || "Login failed");
          }
+      }).catch((error) => {
+         console.error("Login error:", error);
+         setError("Login failed. Please try again.");
       });
    };
+   
    useEffect(() => {
       const token = cookie.get("todo-token") || null;
       if (token) {
-         const expirationDate = new Date(token.expire);
-         const currentDate = new Date();
-         if (expirationDate > currentDate) {
-            navigate.push("/");
+         try {
+            const expirationDate = new Date(token.expire);
+            const currentDate = new Date();
+            if (expirationDate > currentDate) {
+               navigate.push("/");
+            }
+         } catch (error) {
+            console.error("Token validation error:", error);
+            cookie.remove("todo-token");
          }
       }
-   });
+   }, []);
+   
    return (
       <div className="min-h-screen bg-[#080710] flex items-center justify-center overflow-hidden">
          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[500px]">
@@ -57,6 +67,9 @@ const login = () => {
                   <button className="px-10 py-2 bg-teal-400 text-white font-bold rounded" onClick={loginHandler}>
                      Log In
                   </button>
+               </div>
+               <div className="text-center text-xs text-gray-300 mb-3">
+                  <p>Demo: Use any email/password to login</p>
                </div>
             </div>
          </div>
