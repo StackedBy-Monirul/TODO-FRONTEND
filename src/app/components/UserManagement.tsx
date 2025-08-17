@@ -1,231 +1,272 @@
-import axios from "axios";
-import React, { FC, ReactNode, useEffect, useRef, useState } from "react";
+"use client";
+import React, { FC, useState, useEffect } from "react";
+import { Modal, Button, TextInput, Select, Avatar, Badge } from "flowbite-react";
+import userInterface from "../interfaces/userInterface";
+import { getAPI, postAPI, putAPI, deleteAPI } from "./Api";
 import { Cookies } from "react-cookie";
-import { AiFillEdit, AiOutlineFileAdd } from "react-icons/ai";
-import { BsThreeDots, BsTrashFill } from "react-icons/bs";
-import GlassItem from "./GlassItem";
-import { getAPI, postAPI } from "./Api";
-import { todoInterface } from "../interfaces/todoInterface";
-import { Draggable, Droppable } from "@hello-pangea/dnd";
+import { AiOutlinePlus, AiOutlineEdit, AiOutlineDelete, AiOutlineUser } from "react-icons/ai";
+import { MdClose } from "react-icons/md";
 
-const GlassCard: FC<{
-  children?: ReactNode;
-  className?: string;
-  title: string;
-  id?: string;
-  user?: object | any;
-  todos?: todoInterface[] | any;
-  index: number;
-  update?: (id: todoInterface | any) => void;
-  height?: number | undefined;
-}> = ({
-  children,
-  className,
-  title,
-  id,
-  user,
-  todos,
-  index,
-  update,
-  height,
-}) => {
-  const [active, setActive] = useState<boolean>(false);
-  const [data, setData] = useState<todoInterface[]>([]);
-  const [todoActive, setTodoActive] = useState<boolean>(false);
-  const [todoName, setTodoName] = useState<string>("");
-  const cardRef = useRef<HTMLDivElement>(null);
-  const cookie = new Cookies();
-  const token: any = cookie.get("todo-token") || "";
+interface UserManagementProps {
+   isOpen: boolean;
+   onClose: () => void;
+}
 
-  const sectionHandler = (todos: todoInterface[]) => {
-    setData(todos);
-  };
+const UserManagement: FC<UserManagementProps> = ({ isOpen, onClose }) => {
+   const [users, setUsers] = useState<userInterface[]>([]);
+   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+   const [editingUser, setEditingUser] = useState<userInterface | null>(null);
+   const [formData, setFormData] = useState({
+      name: "",
+      email: "",
+      role: "member" as "admin" | "member" | "viewer",
+   });
+   const [loading, setLoading] = useState(false);
 
-  const TodoSubmitHandler = async () => {
-    postAPI("todo/create", token && token.token, {
-      name: todoName,
-      section: id,
-      user: user._id,
-    }).then((res) => {
-      if (res.status === 200 || (res.data && res.data.status === 200)) {
-        setData([...data, res.data.data[0]]);
-        update && update([...data, res.data.data[0]]);
-        todos = [...data, res.data.data[0]];
-        setTodoActive(!todoActive);
-        setTodoName("");
+   const cookie = new Cookies();
+   const token: any = cookie.get("todo-token") || "";
+
+   useEffect(() => {
+      if (isOpen) {
+         loadUsers();
       }
-    });
-  };
+   }, [isOpen]);
 
-  const deleteHandler = (e: string) => {
-    const oldData = [...data];
-    const dataIndex = data.findIndex(
-      (item) => item._id.toString() === e?.toString()
-    );
-    if (dataIndex !== -1) {
-      oldData.splice(dataIndex, 1);
-    }
-    setData(oldData);
-    update && update(oldData);
-  };
+   const loadUsers = async () => {
+      setLoading(true);
+      try {
+         const response = await getAPI("users/all", token?.token);
+         if (response.status === 200) {
+            setUsers(response.data.data || []);
+         }
+      } catch (error) {
+         console.error("Error loading users:", error);
+      } finally {
+         setLoading(false);
+      }
+   };
 
-  const handleClickOutside = (event: MouseEvent) => {
-    if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
-      setActive(false)
-    }
-  };
+   const handleAddUser = async () => {
+      if (!formData.name.trim() || !formData.email.trim()) return;
 
-  useEffect(() => {
-    sectionHandler(todos);
-    document.addEventListener('mousedown', handleClickOutside);
+      try {
+         const response = await postAPI("users/create", token?.token, formData);
+         if (response.status === 200) {
+            setUsers([...users, response.data.data]);
+            resetForm();
+            setIsAddModalOpen(false);
+         }
+      } catch (error) {
+         console.error("Error adding user:", error);
+      }
+   };
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [todos, id]);
-  return (
-    <Draggable draggableId={`draggable-${id}`} index={+index}>
-      {(provided) => (
-        <div
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          {...provided.dragHandleProps}
-          className={`inline-block align-top mx-2 glass-card glass-card-hover min-w-[400px] rounded-lg text-white animate-fade-in-up ${
-            className && className
-          }`}
-        >
-          <div className="p-5 flex items-start justify-between relative border-b border-gray-700/50" ref={cardRef}>
-            <div className="flex-1">
-              <p className="text-lg font-bold pr-5 text-white">{title}</p>
-              <p className="text-sm text-gray-400 mt-1">
-                {data.length} {data.length === 1 ? 'task' : 'tasks'}
-              </p>
+   const handleUpdateUser = async () => {
+      if (!editingUser || !formData.name.trim() || !formData.email.trim()) return;
+
+      try {
+         const response = await putAPI(`users/${editingUser._id}`, token?.token, formData);
+         if (response.status === 200) {
+            setUsers(users.map((user) => (user._id === editingUser._id ? response.data.data : user)));
+            resetForm();
+            setEditingUser(null);
+         }
+      } catch (error) {
+         console.error("Error updating user:", error);
+      }
+   };
+
+   const handleDeleteUser = async (userId: string) => {
+      if (!confirm("Are you sure you want to delete this user?")) return;
+
+      try {
+         const response = await deleteAPI(`users/${userId}`, token?.token);
+         if (response.status === 200) {
+            setUsers(users.filter((user) => user._id !== userId));
+         }
+      } catch (error) {
+         console.error("Error deleting user:", error);
+      }
+   };
+
+   const resetForm = () => {
+      setFormData({
+         name: "",
+         email: "",
+         role: "member",
+      });
+   };
+
+   const openEditModal = (user: userInterface) => {
+      setEditingUser(user);
+      setFormData({
+         name: user.name,
+         email: user.email,
+         role: user.role || "member",
+      });
+   };
+
+   const getRoleColor = (role: string) => {
+      switch (role) {
+         case "admin":
+            return "bg-red-500";
+         case "member":
+            return "bg-blue-500";
+         case "viewer":
+            return "bg-gray-500";
+         default:
+            return "bg-gray-500";
+      }
+   };
+
+   return (
+      <>
+         <Modal show={isOpen} onClose={onClose} size="6xl" className="backdrop-blur-sm">
+            <div className="bg-gray-900 text-white rounded-lg shadow-2xl border border-gray-700">
+               <Modal.Header className="bg-gray-800 border-b border-gray-700 rounded-t-lg">
+                  <div className="flex items-center justify-between w-full">
+                     <h2 className="text-xl font-bold flex items-center">
+                        <AiOutlineUser className="mr-2" />
+                        User Management
+                     </h2>
+                     <button onClick={onClose} className="text-gray-400 hover:text-white">
+                        <MdClose size={24} />
+                     </button>
+                  </div>
+               </Modal.Header>
+
+               <Modal.Body className="bg-gray-900 p-6">
+                  <div className="flex justify-between items-center mb-6">
+                     <h3 className="text-lg font-semibold">Team Members ({users.length})</h3>
+                     <Button onClick={() => setIsAddModalOpen(true)} className="bg-teal-500 hover:bg-teal-600">
+                        <AiOutlinePlus className="mr-2" />
+                        Add User
+                     </Button>
+                  </div>
+
+                  {loading ? (
+                     <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto"></div>
+                        <p className="mt-4 text-gray-400">Loading users...</p>
+                     </div>
+                  ) : (
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {users.map((user) => (
+                           <div key={user._id} className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                              <div className="flex items-center space-x-3 mb-3">
+                                 <Avatar img={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} size="md" rounded />
+                                 <div className="flex-1">
+                                    <h4 className="font-semibold text-white">{user.name}</h4>
+                                    <p className="text-sm text-gray-400">{user.email}</p>
+                                 </div>
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                 <Badge className={`${getRoleColor(user.role || "member")} text-white`}>{user.role || "member"}</Badge>
+                                 <div className="flex space-x-2">
+                                    <button onClick={() => openEditModal(user)} className="text-blue-400 hover:text-blue-300 p-1">
+                                       <AiOutlineEdit size={16} />
+                                    </button>
+                                    <button onClick={() => handleDeleteUser(user._id)} className="text-red-400 hover:text-red-300 p-1">
+                                       <AiOutlineDelete size={16} />
+                                    </button>
+                                 </div>
+                              </div>
+
+                              <div className="mt-3 text-xs text-gray-500">Joined: {new Date(user.createdAt).toLocaleDateString()}</div>
+                           </div>
+                        ))}
+                     </div>
+                  )}
+               </Modal.Body>
             </div>
-              <p className="text-lg font-bold pr-5 text-white">{title}</p>
-              <p className="text-sm text-gray-400 mt-1">
-                {data.length} {data.length === 1 ? 'task' : 'tasks'}
-              </p>
+         </Modal>
+
+         {/* Add User Modal */}
+         <Modal show={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} size="md">
+            <div className="bg-gray-900 text-white rounded-lg shadow-2xl border border-gray-700">
+               <Modal.Header className="bg-gray-800 border-b border-gray-700">
+                  <h3 className="text-lg font-semibold">Add New User</h3>
+               </Modal.Header>
+               <Modal.Body className="bg-gray-900 p-6">
+                  <div className="space-y-4">
+                     <div>
+                        <label className="block text-sm font-medium mb-2">Name</label>
+                        <TextInput value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Enter user name" className="bg-gray-800 border-gray-600 text-white" />
+                     </div>
+                     <div>
+                        <label className="block text-sm font-medium mb-2">Email</label>
+                        <TextInput type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="Enter email address" className="bg-gray-800 border-gray-600 text-white" />
+                     </div>
+                     <div>
+                        <label className="block text-sm font-medium mb-2">Role</label>
+                        <Select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as any })} className="bg-gray-800 border-gray-600 text-white">
+                           <option value="viewer">Viewer</option>
+                           <option value="member">Member</option>
+                           <option value="admin">Admin</option>
+                        </Select>
+                     </div>
+                  </div>
+               </Modal.Body>
+               <Modal.Footer className="bg-gray-800 border-t border-gray-700">
+                  <Button onClick={handleAddUser} className="bg-teal-500 hover:bg-teal-600">
+                     Add User
+                  </Button>
+                  <Button
+                     onClick={() => {
+                        setIsAddModalOpen(false);
+                        resetForm();
+                     }}
+                     className="bg-gray-600 hover:bg-gray-700">
+                     Cancel
+                  </Button>
+               </Modal.Footer>
             </div>
-            <BsThreeDots
-              className="text-gray-400 hover:text-white text-2xl cursor-pointer transition-colors"
-              onClick={() => setActive(!active)}
-            />
-            <div
-              className={`absolute top-12 right-0 w-[150px] z-50 glass-card rounded-lg border border-gray-600 ${
-                active ? "h-auto block" : "h-0 hidden"
-              } transition-all duration-300 animate-slide-in-right`}
-            >
-              <ul>
-                <li className="px-5 flex items-center gap-2 py-3 border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors">
-                  <AiFillEdit className="text-white text-base" />
-                  <span className="text-white">Edit</span>
-                </li>
-                <li className="px-5 flex items-center gap-2 py-3 cursor-pointer hover:bg-red-500/20 transition-colors text-red-400">
-                  <BsTrashFill className="text-white text-base" />
-                  <span>Delete</span>
-                </li>
-              </ul>
+         </Modal>
+
+         {/* Edit User Modal */}
+         <Modal show={!!editingUser} onClose={() => setEditingUser(null)} size="md">
+            <div className="bg-gray-900 text-white rounded-lg shadow-2xl border border-gray-700">
+               <Modal.Header className="bg-gray-800 border-b border-gray-700">
+                  <h3 className="text-lg font-semibold">Edit User</h3>
+               </Modal.Header>
+               <Modal.Body className="bg-gray-900 p-6">
+                  <div className="space-y-4">
+                     <div>
+                        <label className="block text-sm font-medium mb-2">Name</label>
+                        <TextInput value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Enter user name" className="bg-gray-800 border-gray-600 text-white" />
+                     </div>
+                     <div>
+                        <label className="block text-sm font-medium mb-2">Email</label>
+                        <TextInput type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="Enter email address" className="bg-gray-800 border-gray-600 text-white" />
+                     </div>
+                     <div>
+                        <label className="block text-sm font-medium mb-2">Role</label>
+                        <Select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as any })} className="bg-gray-800 border-gray-600 text-white">
+                           <option value="viewer">Viewer</option>
+                           <option value="member">Member</option>
+                           <option value="admin">Admin</option>
+                        </Select>
+                     </div>
+                  </div>
+               </Modal.Body>
+               <Modal.Footer className="bg-gray-800 border-t border-gray-700">
+                  <Button onClick={handleUpdateUser} className="bg-teal-500 hover:bg-teal-600">
+                     Update User
+                  </Button>
+                  <Button
+                     onClick={() => {
+                        setEditingUser(null);
+                        resetForm();
+                     }}
+                     className="bg-gray-600 hover:bg-gray-700">
+                     Cancel
+                  </Button>
+               </Modal.Footer>
             </div>
-          </div>
-          <div className="pb-5 px-5">
-            <Droppable
-              droppableId={`${id}`}
-              type="ITEM"
-              renderClone={(provide, snapshot, rubric) => (
-                <div
-                  {...provide.draggableProps}
-                  {...provide.dragHandleProps}
-                  ref={provide.innerRef}
-                  className="mb-5"
-                >
-                  <GlassItem
-                    item={data && data[rubric.source.index]}
-                    delHandle={(e) => deleteHandler(e)}
-                  />
-                </div>
-              )}
-            >
-              {(provide, snapshot) => (
-                <div
-                  ref={provide.innerRef}
-                  style={{
-                    backgroundColor: snapshot.isDraggingOver
-                      ? "rgba(20, 184, 166, 0.1)"
-                      : "transparent",
-                    minHeight: snapshot.isDraggingOver ? "50px" : "10px",
-                    maxHeight: `${height && (height - 190)}px`,
-                  }}
-                  {...provide.droppableProps}
-                >
-                  {data &&
-                    data.map((item, index) => (
-                      <Draggable
-                        draggableId={`draggableItem-${item._id}`}
-                        index={index}
-                        key={item._id}
-                      >
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="mb-5 "
-                          >
-                            <GlassItem
-                              item={item}
-                              delHandle={(e) => deleteHandler(e)}
-                            />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                  {provide.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </div>
-          <div className="px-5 pb-5">
-            {todoActive ? (
-              <>
-                <div>
-                  <input
-                    className="w-full border rounded px-2 bg-transparent py-2"
-                    placeholder="+ Add a card"
-                    onChange={(e) => setTodoName(e.target.value)}
-                  />
-                </div>
-                <div className="flex items-center justify-between mt-3">
-                  <button
-                    className="py-2 px-10 bg-teal-400 text-white text-base font-bold rounded"
-                    onClick={TodoSubmitHandler}
-                  >
-                    Submit
-                  </button>
-                  <button
-                    className="py-2 px-10 bg-red-500 text-white text-base font-bold rounded"
-                    onClick={() => {
-                      setTodoActive(!todoActive);
-                      setTodoName("");
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div
-                className="glass-card hover:bg-gray-700/30 py-3 flex items-center gap-3 text-gray-300 hover:text-white w-full justify-center cursor-pointer rounded-lg transition-all duration-300 border border-gray-600/50 hover:border-teal-500/50"
-                onClick={() => setTodoActive(!todoActive)}
-              >
-                <AiOutlineFileAdd className="text-xl" />
-                <p className="font-medium">Add New Task</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </Draggable>
-  );
+         </Modal>
+      </>
+   );
 };
 
-export default GlassCard;
+export default UserManagement;
