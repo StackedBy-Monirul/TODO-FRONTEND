@@ -24,7 +24,7 @@ const Layout: FC<layoutInterface> = ({
   return (
     user && (
       <div style={style} className="min-h-screen overflow-hidden relative">
-        <Navbar active={active} onClick={menuHandler} />
+        <Navbar active={active} onClick={menuHandler} user={user} />
         <RandomObject />
         <Sidebar activePage={activePage} active={active} />
         <main

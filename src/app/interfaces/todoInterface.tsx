@@ -1,3 +1,6 @@
+import commentInterface from "./commentInterface";
+import userInterface from "./userInterface";
+
 interface todoInterface {
   _id: string;
   name: string;
@@ -8,9 +11,18 @@ interface todoInterface {
   time?: string;
   tag?: string[];
   project?: string;
-  comments?: string[];
+  comments?: commentInterface[];
+  assignedUsers?: userInterface[];
   level?: string;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  dueDate?: Date;
+  attachments?: string[];
   sorting?: number;
+  checklist?: {
+    _id: string;
+    text: string;
+    completed: boolean;
+  }[];
 }
 interface dataMapInterface {
   id: string;

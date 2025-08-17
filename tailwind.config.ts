@@ -13,6 +13,20 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        darkop: "rgba(0, 0, 0, 0.3)",
+        glass: {
+          light: "rgba(255, 255, 255, 0.05)",
+          medium: "rgba(255, 255, 255, 0.1)",
+          dark: "rgba(0, 0, 0, 0.3)",
+        },
+      },
+      animation: {
+        'slide-in-right': 'slideInFromRight 0.3s ease-out',
+        'fade-in-up': 'fadeInUp 0.3s ease-out',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      backdropBlur: {
+        xs: '2px',
       },
     },
   },
