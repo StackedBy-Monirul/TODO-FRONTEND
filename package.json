@@ -14,7 +14,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@hello-pangea/dnd": "^17.0.0",
+    "@hello-pangea/dnd": "^18.0.1",
     "axios": "^1.11.0",
     "flowbite-react": "^0.10.2",
     "next": "14.2.15",
