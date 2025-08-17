@@ -90,34 +90,39 @@ const GlassCard: FC<{
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`inline-block align-top mx-2 backdrop-blur-[44px] min-w-[400px] rounded-lg text-white shadow-[0px_2px_5px_1px_rgba(255,255,255,0.30)_inset] ${
+          className={`inline-block align-top mx-2 glass-card glass-card-hover min-w-[400px] rounded-lg text-white animate-fade-in-up ${
             className && className
           }`}
         >
-          <div className="p-5 flex items-start justify-between relative" ref={cardRef}>
-            <p className="text-base font-bold pr-5">{title}</p>
+          <div className="p-5 flex items-start justify-between relative border-b border-gray-700/50" ref={cardRef}>
+            <div className="flex-1">
+              <p className="text-lg font-bold pr-5 text-white">{title}</p>
+              <p className="text-sm text-gray-400 mt-1">
+                {data.length} {data.length === 1 ? 'task' : 'tasks'}
+              </p>
+            </div>
             <BsThreeDots
-              className="text-white text-3xl cursor-pointer"
+              className="text-gray-400 hover:text-white text-2xl cursor-pointer transition-colors"
               onClick={() => setActive(!active)}
             />
             <div
-              className={`absolute top-12 right-0 w-[150px] z-50 bg-[#1d1d1d8a] ${
+              className={`absolute top-12 right-0 w-[150px] z-50 glass-card rounded-lg border border-gray-600 ${
                 active ? "h-auto block" : "h-0 hidden"
-              } transition-all duration-300`}
+              } transition-all duration-300 animate-slide-in-right`}
             >
               <ul>
-                <li className="px-5 flex items-center gap-2 py-4 border-b cursor-pointer">
+                <li className="px-5 flex items-center gap-2 py-3 border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors">
                   <AiFillEdit className="text-white text-base" />
-                  Edit
+                  <span className="text-white">Edit</span>
                 </li>
-                <li className="px-5 flex items-center gap-2 py-4 border-b cursor-pointer">
+                <li className="px-5 flex items-center gap-2 py-3 cursor-pointer hover:bg-red-500/20 transition-colors text-red-400">
                   <BsTrashFill className="text-white text-base" />
-                  Delete
+                  <span>Delete</span>
                 </li>
               </ul>
             </div>
           </div>
-          <div className={`pb-5 px-5`}>
+          <div className="pb-5 px-5">
             <Droppable
               droppableId={`${id}`}
               type="ITEM"
@@ -138,10 +143,10 @@ const GlassCard: FC<{
               {(provide, snapshot) => (
                 <div
                   ref={provide.innerRef}
-                  className={`overflow-y-auto scrollbar1`}
+                  className="overflow-y-auto scrollbar1 transition-colors duration-300"
                   style={{
                     backgroundColor: snapshot.isDraggingOver
-                      ? "#00000042"
+                      ? "rgba(20, 184, 166, 0.1)"
                       : "transparent",
                     minHeight: snapshot.isDraggingOver ? "50px" : "10px",
                     maxHeight: `${height && (height - 190)}px`,
@@ -205,11 +210,11 @@ const GlassCard: FC<{
               </>
             ) : (
               <div
-                className="bg-[#0000009a] py-2 flex items-center gap-5 text-white w-full justify-center cursor-pointer rounded"
+                className="glass-card hover:bg-gray-700/30 py-3 flex items-center gap-3 text-gray-300 hover:text-white w-full justify-center cursor-pointer rounded-lg transition-all duration-300 border border-gray-600/50 hover:border-teal-500/50"
                 onClick={() => setTodoActive(!todoActive)}
               >
-                <AiOutlineFileAdd className="text-2xl text-white" />
-                <p>Add New Task</p>
+                <AiOutlineFileAdd className="text-xl" />
+                <p className="font-medium">Add New Task</p>
               </div>
             )}
           </div>
