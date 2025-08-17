@@ -1,144 +1,239 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import GetUser from "./components/GetUser";
+import axios from "axios";
+import React, { FC, ReactNode, useEffect, useRef, useState } from "react";
 import { Cookies } from "react-cookie";
-import { getAPI, postAPI } from "./components/Api";
-import { dataMapInterface, todoInterface } from "./interfaces/todoInterface";
-import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
-import Layout from "./components/Layout";
-import sectionInterface from "./interfaces/sectionInterface";
-import GlassCard from "./components/GlassCard";
-import AddSection from "./components/AddSection";
+import { AiFillEdit, AiOutlineFileAdd } from "react-icons/ai";
+import { BsThreeDots, BsTrashFill } from "react-icons/bs";
+import GlassItem from "./GlassItem";
+import { getAPI, postAPI } from "./Api";
+import { todoInterface } from "../interfaces/todoInterface";
+import { Draggable, Droppable } from "@hello-pangea/dnd";
 
-export default function Home() {
-   const [section, setSection] = useState<sectionInterface[]>([]);
-   const [todos, setTodos] = useState<dataMapInterface[]>([]);
-   const [Token, setToken] = useState<string>("");
-   const [mainHeight, setMainHeight] = useState<number>(0);
-   const { user, authenticated } = GetUser();
-   const cookie = new Cookies();
-   const sectionHandler = (token: any) => {
-      getAPI("section/all", token ? token : Token).then((res) => {
-         if (res.data && res.data.status === 200) {
-            setSection(res.data.data[0].section);
-            setTodos(res.data.data[0].todos);
-         }
-      });
-   };
-   const DataHandler = (newdata: any) => {
-      setSection([...section, newdata]);
-   };
+const GlassCard: FC<{
+  children?: ReactNode;
+  className?: string;
+  title: string;
+  id?: string;
+  user?: object | any;
+  todos?: todoInterface[] | any;
+  index: number;
+  update?: (id: todoInterface | any) => void;
+  height?: number | undefined;
+}> = ({
+  children,
+  className,
+  title,
+  id,
+  user,
+  todos,
+  index,
+  update,
+  height,
+}) => {
+  const [active, setActive] = useState<boolean>(false);
+  const [data, setData] = useState<todoInterface[]>([]);
+  const [todoActive, setTodoActive] = useState<boolean>(false);
+  const [todoName, setTodoName] = useState<string>("");
+  const cardRef = useRef<HTMLDivElement>(null);
+  const cookie = new Cookies();
+  const token: any = cookie.get("todo-token") || "";
 
-   const updateHandler = (id: string | undefined, data: todoInterface[]) => {
-      const newTodos = [...todos];
-      const todoIndex = todos.findIndex((todo) => todo.id.toString() === id?.toString());
-      if (todoIndex !== -1) {
-         newTodos[todoIndex] = {
-            ...newTodos[todoIndex],
-            todos: data,
-         };
+  const sectionHandler = (todos: todoInterface[]) => {
+    setData(todos);
+  };
+
+  const TodoSubmitHandler = async () => {
+    postAPI("todo/create", token && token.token, {
+      name: todoName,
+      section: id,
+      user: user._id,
+    }).then((res) => {
+      if (res.status === 200 || (res.data && res.data.status === 200)) {
+        setData([...data, res.data.data[0]]);
+        update && update([...data, res.data.data[0]]);
+        todos = [...data, res.data.data[0]];
+        setTodoActive(!todoActive);
+        setTodoName("");
       }
+    });
+  };
 
-      setTodos(newTodos);
-      setSection(section);
-   };
+  const deleteHandler = (e: string) => {
+    const oldData = [...data];
+    const dataIndex = data.findIndex(
+      (item) => item._id.toString() === e?.toString()
+    );
+    if (dataIndex !== -1) {
+      oldData.splice(dataIndex, 1);
+    }
+    setData(oldData);
+    update && update(oldData);
+  };
 
-   const ondragend = (result: DropResult) => {
-      const { destination, source, type } = result;
-      if (!destination) return;
-      if (type === "CARD") {
-         const card = [...section];
-         const [remove] = card.splice(source.index, 1);
-         card.splice(destination.index, 0, remove);
-         setSection(card);
-         const cardSort = card.map((item) => item._id);
+  const handleClickOutside = (event: MouseEvent) => {
+    if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
+      setActive(false)
+    }
+  };
 
-         postAPI("section/sort", Token, { data: cardSort }).catch((error) => console.log(error));
-         return;
-      }
-      if (type === "ITEM") {
-         const sourceSection = section.find((section) => section._id?.toString() === source.droppableId.toString());
+  useEffect(() => {
+    sectionHandler(todos);
+    document.addEventListener('mousedown', handleClickOutside);
 
-         const sourceeIndex = todos.findIndex((todo) => todo.id.toString() === source.droppableId.toString());
-
-         const destinationSection = section.find((section) => section._id?.toString() === destination.droppableId.toString());
-
-         const destinationIndex = todos.findIndex((todo) => todo.id.toString() === destination.droppableId.toString());
-
-         if (!sourceSection || !destinationSection) return;
-
-         if (source.index === destination.index && sourceSection._id?.toString() === destinationSection._id?.toString()) return;
-
-         if (sourceSection._id?.toString() === destinationSection._id?.toString()) {
-            const newTodos = [...todos];
-            const newTodo = todos[sourceeIndex];
-            const [remove] = newTodo.todos.splice(source.index, 1);
-            newTodo.todos.splice(destination.index, 0, remove);
-            newTodos[sourceeIndex] = newTodo;
-            setTodos(newTodos);
-            setSection(section);
-
-            postAPI("todo/sort", Token, { data: [newTodos[sourceeIndex]] }).catch((error) => console.log(error));
-         } else {
-            const newTodos = [...todos];
-            const oldTodo = todos[sourceeIndex];
-            let newTodo = todos[destinationIndex];
-            const [remove] = oldTodo.todos.splice(source.index, 1);
-            if (newTodo) {
-               newTodo.todos.splice(destination.index, 0, remove);
-               newTodos[sourceeIndex] = oldTodo;
-               newTodos[destinationIndex] = newTodo;
-            } else {
-               newTodo = {
-                  id: destination.droppableId,
-                  todos: [remove],
-               };
-               newTodos[sourceeIndex] = oldTodo;
-               newTodos.push(newTodo);
-            }
-            setTodos(newTodos);
-            setSection(section);
-
-            postAPI("todo/sort", Token, {
-               data: [newTodos[sourceeIndex], newTodos[destinationIndex]],
-            }).catch((error) => console.log(error));
-         }
-      }
-   };
-
-   useEffect(() => {
-      const token = cookie.get("todo-token");
-      if (token) {
-         setToken(token.token);
-         sectionHandler(token.token);
-      }
-      const height = window.innerHeight;
-      setMainHeight(height - 100 - 20);
-   }, []);
-   return (
-      <DragDropContext onDragEnd={ondragend}>
-         <Layout backgroundColor="#0b072d" activePage="home">
-            <Droppable droppableId="droppableCard" type="CARD" direction="horizontal">
-               {(provided, snapshot) => (
-                  <div
-                     className="whitespace-nowrap overflow-x-scroll overflow-y-hidden scrollbar pb-24 "
-                     ref={provided.innerRef}
-                     style={{
-                        backgroundColor: snapshot.isDraggingOver ? "#00000042" : "transparent",
-                        height: `${mainHeight}px`,
-                     }}
-                     {...provided.droppableProps}>
-                     {section.map((item: sectionInterface, index) => {
-                        const data = todos.find((todo) => todo.id.toString() === item._id?.toString());
-                        return <GlassCard title={item.name ? item.name : ""} id={item._id} user={user} index={index} key={item._id} todos={data?.todos} update={(e) => updateHandler(item._id, e)} height={mainHeight} />;
-                     })}
-                     {provided.placeholder}
-                     <AddSection newData={DataHandler} userData={user} />
-                  </div>
-               )}
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [todos, id]);
+  return (
+    <Draggable draggableId={`draggable-${id}`} index={+index}>
+      {(provided) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          className={`inline-block align-top mx-2 glass-card glass-card-hover min-w-[400px] rounded-lg text-white animate-fade-in-up ${
+            className && className
+          }`}
+        >
+          <div className="p-5 flex items-start justify-between relative border-b border-gray-700/50" ref={cardRef}>
+            <div className="flex-1">
+              <p className="text-lg font-bold pr-5 text-white">{title}</p>
+              <p className="text-sm text-gray-400 mt-1">
+                {data.length} {data.length === 1 ? 'task' : 'tasks'}
+              </p>
+            </div>
+              <p className="text-lg font-bold pr-5 text-white">{title}</p>
+              <p className="text-sm text-gray-400 mt-1">
+                {data.length} {data.length === 1 ? 'task' : 'tasks'}
+              </p>
+            </div>
+            <BsThreeDots
+              className="text-gray-400 hover:text-white text-2xl cursor-pointer transition-colors"
+              onClick={() => setActive(!active)}
+            />
+            <div
+              className={`absolute top-12 right-0 w-[150px] z-50 glass-card rounded-lg border border-gray-600 ${
+                active ? "h-auto block" : "h-0 hidden"
+              } transition-all duration-300 animate-slide-in-right`}
+            >
+              <ul>
+                <li className="px-5 flex items-center gap-2 py-3 border-b border-gray-600 cursor-pointer hover:bg-gray-700/50 transition-colors">
+                  <AiFillEdit className="text-white text-base" />
+                  <span className="text-white">Edit</span>
+                </li>
+                <li className="px-5 flex items-center gap-2 py-3 cursor-pointer hover:bg-red-500/20 transition-colors text-red-400">
+                  <BsTrashFill className="text-white text-base" />
+                  <span>Delete</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="pb-5 px-5">
+            <Droppable
+              droppableId={`${id}`}
+              type="ITEM"
+              renderClone={(provide, snapshot, rubric) => (
+                <div
+                  {...provide.draggableProps}
+                  {...provide.dragHandleProps}
+                  ref={provide.innerRef}
+                  className="mb-5"
+                >
+                  <GlassItem
+                    item={data && data[rubric.source.index]}
+                    delHandle={(e) => deleteHandler(e)}
+                  />
+                </div>
+              )}
+            >
+              {(provide, snapshot) => (
+                <div
+                  ref={provide.innerRef}
+                  style={{
+                        return (
+                          <MemoCard 
+                            key={item._id}
+                            item={item}
+                            user={user}
+                            index={index}
+                            dataMap={todos}
+                          />
+                        );
+                      ? "rgba(20, 184, 166, 0.1)"
+                      : "transparent",
+                    minHeight: snapshot.isDraggingOver ? "50px" : "10px",
+                    maxHeight: `${height && (height - 190)}px`,
+                  }}
+                  {...provide.droppableProps}
+                >
+                  {data &&
+                    data.map((item, index) => (
+                      <Draggable
+                        draggableId={`draggableItem-${item._id}`}
+                        index={index}
+                        key={item._id}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className="mb-5 "
+                          >
+                            <GlassItem
+                              item={item}
+                              delHandle={(e) => deleteHandler(e)}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                  {provide.placeholder}
+                </div>
+              )}
             </Droppable>
-         </Layout>
-      </DragDropContext>
-   );
-}
+          </div>
+          <div className="px-5 pb-5">
+            {todoActive ? (
+              <>
+                <div>
+                  <input
+                    className="w-full border rounded px-2 bg-transparent py-2"
+                    placeholder="+ Add a card"
+                    onChange={(e) => setTodoName(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-3">
+                  <button
+                    className="py-2 px-10 bg-teal-400 text-white text-base font-bold rounded"
+                    onClick={TodoSubmitHandler}
+                  >
+                    Submit
+                  </button>
+                  <button
+                    className="py-2 px-10 bg-red-500 text-white text-base font-bold rounded"
+                    onClick={() => {
+                      setTodoActive(!todoActive);
+                      setTodoName("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div
+                className="glass-card hover:bg-gray-700/30 py-3 flex items-center gap-3 text-gray-300 hover:text-white w-full justify-center cursor-pointer rounded-lg transition-all duration-300 border border-gray-600/50 hover:border-teal-500/50"
+                onClick={() => setTodoActive(!todoActive)}
+              >
+                <AiOutlineFileAdd className="text-xl" />
+                <p className="font-medium">Add New Task</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </Draggable>
+  );
+};
+
+export default GlassCard;
