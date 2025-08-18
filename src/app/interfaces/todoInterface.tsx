@@ -16,7 +16,15 @@ interface todoInterface {
   level?: string;
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   dueDate?: Date;
-  attachments?: string[];
+  attachments?: {
+    _id: string;
+    name: string;
+    url: string;
+    type: 'image' | 'document';
+    size: number;
+    uploadedBy: string;
+    uploadedAt: Date;
+  }[];
   sorting?: number;
   checklist?: {
     _id: string;

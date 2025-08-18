@@ -5,10 +5,11 @@ import { todoInterface } from "../interfaces/todoInterface";
 import commentInterface from "../interfaces/commentInterface";
 import userInterface from "../interfaces/userInterface";
 import { postAPI, putAPI, getAPI } from "./Api";
+import { deleteAPI } from "./Api";
 import { Cookies } from "react-cookie";
 import { AiOutlineUser, AiOutlineCalendar, AiOutlineFlag, AiOutlineCheckSquare, AiOutlinePaperClip, AiOutlineComment, AiOutlinePlus } from "react-icons/ai";
 import { BsThreeDots } from "react-icons/bs";
-import { MdClose } from "react-icons/md";
+import { MdClose, MdDownload, MdDelete } from "react-icons/md";
 
 interface TodoModalProps {
    isOpen: boolean;
@@ -29,6 +30,8 @@ const TodoModal: FC<TodoModalProps> = ({ isOpen, onClose, todo, onUpdate }) => {
    const [availableUsers, setAvailableUsers] = useState<userInterface[]>([]);
    const [checklist, setChecklist] = useState<any[]>([]);
    const [newChecklistItem, setNewChecklistItem] = useState<string>("");
+   const [attachments, setAttachments] = useState<any[]>([]);
+   const [isUploading, setIsUploading] = useState<boolean>(false);
 
    const cookie = new Cookies();
    const token: any = cookie.get("todo-token") || "";
@@ -43,6 +46,7 @@ const TodoModal: FC<TodoModalProps> = ({ isOpen, onClose, todo, onUpdate }) => {
          setComments(todo.comments || []);
          setAssignedUsers(todo.assignedUsers || []);
          setChecklist(todo.checklist || []);
+         setAttachments(todo.attachments || []);
          loadAvailableUsers();
       }
    }, [todo, isOpen]);
@@ -57,6 +61,90 @@ const TodoModal: FC<TodoModalProps> = ({ isOpen, onClose, todo, onUpdate }) => {
          console.error("Error loading users:", error);
          setAvailableUsers([]);
       }
+   };
+
+   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file || !currentTodo) return;
+
+      setIsUploading(true);
+      try {
+         // Create mock file data for testing
+         const mockFileData = {
+            name: file.name,
+            type: file.type.startsWith('image/') ? 'image' : 'document',
+            size: file.size,
+            todoId: currentTodo._id,
+            uploadedBy: "user1", // Current user
+            url: file.type.startsWith('image/') 
+               ? `https://via.placeholder.com/400x300/3b82f6/ffffff?text=${encodeURIComponent(file.name)}`
+               : "#"
+         };
+
+         const response = await postAPI("attachments/upload", token?.token, mockFileData);
+         
+         if (response.status === 200) {
+            const newAttachment = response.data.data;
+            const updatedAttachments = [...attachments, newAttachment];
+            setAttachments(updatedAttachments);
+            
+            const updatedTodo = {
+               ...currentTodo,
+               attachments: updatedAttachments,
+            };
+            setCurrentTodo(updatedTodo);
+            onUpdate(updatedTodo);
+         }
+      } catch (error) {
+         console.error("Error uploading file:", error);
+      } finally {
+         setIsUploading(false);
+         // Reset file input
+         event.target.value = '';
+      }
+   };
+
+   const handleDeleteAttachment = async (attachmentId: string) => {
+      if (!confirm("Are you sure you want to delete this attachment?")) return;
+
+      try {
+         const response = await deleteAPI(`attachments/${attachmentId}`, token?.token);
+         
+         if (response.status === 200) {
+            const updatedAttachments = attachments.filter(att => att._id !== attachmentId);
+            setAttachments(updatedAttachments);
+            
+            if (currentTodo) {
+               const updatedTodo = {
+                  ...currentTodo,
+                  attachments: updatedAttachments,
+               };
+               setCurrentTodo(updatedTodo);
+               onUpdate(updatedTodo);
+            }
+         }
+      } catch (error) {
+         console.error("Error deleting attachment:", error);
+      }
+   };
+
+   const getFileIcon = (type: string) => {
+      switch (type) {
+         case 'image':
+            return '🖼️';
+         case 'document':
+            return '📄';
+         default:
+            return '📎';
+      }
+   };
+
+   const formatFileSize = (bytes: number) => {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
    };
 
    const handleAddComment = async () => {
@@ -107,6 +195,7 @@ const TodoModal: FC<TodoModalProps> = ({ isOpen, onClose, todo, onUpdate }) => {
             dueDate: dueDate ? new Date(dueDate) : null,
             assignedUsers: assignedUsers,
             checklist,
+            attachments,
          };
 
          const response = await putAPI(`todo/${currentTodo._id}`, token?.token, updateData);
@@ -114,6 +203,7 @@ const TodoModal: FC<TodoModalProps> = ({ isOpen, onClose, todo, onUpdate }) => {
          if (response.status === 200) {
             const updatedTodo = Array.isArray(response.data.data) ? response.data.data[0] : response.data.data;
             updatedTodo.assignedUsers = assignedUsers; // Ensure assigned users are preserved
+            updatedTodo.attachments = attachments; // Ensure attachments are preserved
             setCurrentTodo(updatedTodo);
             onUpdate(updatedTodo);
          }
@@ -127,7 +217,8 @@ const TodoModal: FC<TodoModalProps> = ({ isOpen, onClose, todo, onUpdate }) => {
             priority,
             dueDate: dueDate ? new Date(dueDate) : null,
             assignedUsers,
-            checklist
+            checklist,
+            attachments
          };
          setCurrentTodo(updatedTodo);
          onUpdate(updatedTodo);
@@ -232,6 +323,68 @@ const TodoModal: FC<TodoModalProps> = ({ isOpen, onClose, todo, onUpdate }) => {
                         </div>
                      </div>
 
+                     {/* Attachments */}
+                     <div>
+                        <h3 className="text-lg font-semibold mb-3 flex items-center">
+                           <AiOutlinePaperClip className="mr-2" />
+                           Attachments ({attachments?.length || 0})
+                        </h3>
+                        <div className="space-y-3">
+                           {attachments?.map((attachment) => (
+                              <div key={attachment._id} className="bg-gray-800 p-3 rounded-lg flex items-center justify-between">
+                                 <div className="flex items-center space-x-3">
+                                    <span className="text-2xl">{getFileIcon(attachment.type)}</span>
+                                    <div>
+                                       <p className="text-white font-medium">{attachment.name}</p>
+                                       <p className="text-xs text-gray-400">
+                                          {formatFileSize(attachment.size)} • {new Date(attachment.uploadedAt).toLocaleDateString()}
+                                       </p>
+                                    </div>
+                                 </div>
+                                 <div className="flex space-x-2">
+                                    {attachment.type === 'image' && (
+                                       <button
+                                          onClick={() => window.open(attachment.url, '_blank')}
+                                          className="text-blue-400 hover:text-blue-300 p-1"
+                                       >
+                                          <MdDownload size={16} />
+                                       </button>
+                                    )}
+                                    <button
+                                       onClick={() => handleDeleteAttachment(attachment._id)}
+                                       className="text-red-400 hover:text-red-300 p-1"
+                                    >
+                                       <MdDelete size={16} />
+                                    </button>
+                                 </div>
+                              </div>
+                           ))}
+                           <div className="border-2 border-dashed border-gray-600 rounded-lg p-4 text-center">
+                              <input
+                                 type="file"
+                                 id="file-upload"
+                                 className="hidden"
+                                 onChange={handleFileUpload}
+                                 accept="image/*,.pdf,.doc,.docx,.txt"
+                              />
+                              <label
+                                 htmlFor="file-upload"
+                                 className={`cursor-pointer flex flex-col items-center space-y-2 ${
+                                    isUploading ? 'opacity-50 pointer-events-none' : ''
+                                 }`}
+                              >
+                                 <AiOutlinePaperClip className="text-3xl text-gray-400" />
+                                 <span className="text-gray-400">
+                                    {isUploading ? 'Uploading...' : 'Click to upload or drag and drop'}
+                                 </span>
+                                 <span className="text-xs text-gray-500">
+                                    Images, PDFs, Documents up to 10MB
+                                 </span>
+                              </label>
+                           </div>
+                        </div>
+                     </div>
+
                      {/* Comments */}
                      <div>
                         <h3 className="text-lg font-semibold mb-3 flex items-center">
@@ -277,10 +430,10 @@ const TodoModal: FC<TodoModalProps> = ({ isOpen, onClose, todo, onUpdate }) => {
                               <AiOutlineCalendar className="mr-2" />
                               Due Date
                            </Button>
-                           <Button className="w-full bg-gray-700 hover:bg-gray-600 text-left justify-start">
+                           <label htmlFor="file-upload" className="w-full bg-gray-700 hover:bg-gray-600 text-left justify-start cursor-pointer flex items-center px-4 py-2 rounded text-white">
                               <AiOutlinePaperClip className="mr-2" />
                               Attachment
-                           </Button>
+                           </label>
                         </div>
                      </div>
 

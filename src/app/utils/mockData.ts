@@ -83,6 +83,26 @@ export const mockTodos = [
     dueDate: new Date("2024-01-25"),
     comments: mockComments,
     assignedUsers: [mockUsers[0], mockUsers[1]],
+    attachments: [
+      {
+        _id: "att1",
+        name: "design-mockup.png",
+        url: "https://via.placeholder.com/400x300/3b82f6/ffffff?text=Design+Mockup",
+        type: "image",
+        size: 245760,
+        uploadedBy: "user1",
+        uploadedAt: new Date("2024-01-20")
+      },
+      {
+        _id: "att2", 
+        name: "requirements.pdf",
+        url: "#",
+        type: "document",
+        size: 1048576,
+        uploadedBy: "user2",
+        uploadedAt: new Date("2024-01-21")
+      }
+    ],
     checklist: [
       { _id: "check1", text: "Create wireframes", completed: true },
       { _id: "check2", text: "Design mockups", completed: false },
@@ -102,6 +122,7 @@ export const mockTodos = [
     dueDate: new Date("2024-01-22"),
     comments: [],
     assignedUsers: [mockUsers[1]],
+    attachments: [],
     checklist: [
       { _id: "check4", text: "Setup JWT middleware", completed: true },
       { _id: "check5", text: "Create login/register forms", completed: false }
@@ -120,9 +141,43 @@ export const mockTodos = [
     dueDate: new Date("2024-01-30"),
     comments: [],
     assignedUsers: [mockUsers[2]],
+    attachments: [],
     checklist: [],
     sorting: 1,
     project: "project2"
+  }
+];
+
+export const mockNotifications = [
+  {
+    _id: "notif1",
+    title: "Task assigned to you",
+    message: "You have been assigned to 'Design new landing page'",
+    type: "assignment",
+    read: false,
+    createdAt: new Date("2024-01-20T10:30:00"),
+    user: "user1",
+    relatedTodo: "todo1"
+  },
+  {
+    _id: "notif2",
+    title: "Due date approaching",
+    message: "Task 'Setup authentication system' is due tomorrow",
+    type: "due_date",
+    read: false,
+    createdAt: new Date("2024-01-21T09:00:00"),
+    user: "user2",
+    relatedTodo: "todo2"
+  },
+  {
+    _id: "notif3",
+    title: "Comment added",
+    message: "John Doe commented on 'Design new landing page'",
+    type: "comment",
+    read: true,
+    createdAt: new Date("2024-01-19T14:15:00"),
+    user: "user1",
+    relatedTodo: "todo1"
   }
 ];
 
@@ -155,7 +210,8 @@ export const LocalStorageKeys = {
   COMMENTS: 'trello_comments',
   PROJECTS: 'trello_projects',
   CURRENT_USER: 'trello_current_user',
-  AUTH_TOKEN: 'trello_auth_token'
+  AUTH_TOKEN: 'trello_auth_token',
+  NOTIFICATIONS: 'trello_notifications'
 };
 
 export const initializeLocalStorage = () => {
@@ -176,6 +232,9 @@ export const initializeLocalStorage = () => {
     }
     if (!localStorage.getItem(LocalStorageKeys.PROJECTS)) {
       localStorage.setItem(LocalStorageKeys.PROJECTS, JSON.stringify(mockProjects));
+    }
+    if (!localStorage.getItem(LocalStorageKeys.NOTIFICATIONS)) {
+      localStorage.setItem(LocalStorageKeys.NOTIFICATIONS, JSON.stringify(mockNotifications));
     }
   } catch (error) {
     console.error('Error initializing localStorage:', error);

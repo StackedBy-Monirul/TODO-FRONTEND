@@ -228,6 +228,45 @@ export const postAPI = async (endpoint: string, token?: string, data?: any) => {
         saveToLocalStorage(LocalStorageKeys.PROJECTS, projects);
         return mockApiResponse(newProject);
         
+      case "attachments/upload":
+        // Mock file upload
+        const mockAttachment = {
+          _id: generateId(),
+          name: data?.name || "uploaded-file.png",
+          url: data?.url || `https://via.placeholder.com/400x300/3b82f6/ffffff?text=${encodeURIComponent(data?.name || "File")}`,
+          type: data?.type || "image",
+          size: data?.size || 1024000,
+          uploadedBy: data?.uploadedBy || "user1",
+          uploadedAt: new Date()
+        };
+        
+        // Add to todo attachments
+        if (data?.todoId) {
+          const todos = getFromLocalStorage(LocalStorageKeys.TODOS) || [];
+          const todoIndex = todos.findIndex((t: any) => t._id === data.todoId);
+          if (todoIndex !== -1) {
+            if (!todos[todoIndex].attachments) {
+              todos[todoIndex].attachments = [];
+            }
+            todos[todoIndex].attachments.push(mockAttachment);
+            saveToLocalStorage(LocalStorageKeys.TODOS, todos);
+          }
+        }
+        return mockApiResponse(mockAttachment);
+        
+      case "notifications/all":
+        const notifications = getFromLocalStorage(LocalStorageKeys.NOTIFICATIONS) || [];
+        return mockApiResponse(notifications);
+        
+      case "notifications/mark-read":
+        const allNotifications = getFromLocalStorage(LocalStorageKeys.NOTIFICATIONS) || [];
+        const notifIndex = allNotifications.findIndex((n: any) => n._id === data?.notificationId);
+        if (notifIndex !== -1) {
+          allNotifications[notifIndex].read = true;
+          saveToLocalStorage(LocalStorageKeys.NOTIFICATIONS, allNotifications);
+        }
+        return mockApiResponse({ success: true });
+        
       case "section/sort":
       case "todo/sort":
         // Mock sorting - just return success
@@ -245,6 +284,10 @@ export const postAPI = async (endpoint: string, token?: string, data?: any) => {
         return mockApiResponse({ success: true });
         
       default:
+        if (endpoint.startsWith("notifications/")) {
+          const notifications = getFromLocalStorage(LocalStorageKeys.NOTIFICATIONS) || [];
+          return mockApiResponse(notifications);
+        }
         return mockApiResponse(null, 404);
     }
   }
@@ -326,6 +369,19 @@ export const deleteAPI = async (endpoint: string, token?: string) => {
       const todoId = endpoint.split("/")[1];
       const result = deleteTodoFromStorage(todoId);
       return mockApiResponse([result]);
+    }
+    
+    if (endpoint.startsWith("attachments/")) {
+      const attachmentId = endpoint.split("/")[1];
+      // Remove attachment from todos
+      const todos = getFromLocalStorage(LocalStorageKeys.TODOS) || [];
+      todos.forEach((todo: any) => {
+        if (todo.attachments) {
+          todo.attachments = todo.attachments.filter((att: any) => att._id !== attachmentId);
+        }
+      });
+      saveToLocalStorage(LocalStorageKeys.TODOS, todos);
+      return mockApiResponse({ id: attachmentId });
     }
     
     if (endpoint.startsWith("users/")) {
