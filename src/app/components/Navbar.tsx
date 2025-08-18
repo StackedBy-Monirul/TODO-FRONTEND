@@ -5,11 +5,13 @@ import { AiOutlineUser, AiOutlineBell, AiOutlineSearch } from "react-icons/ai";
 import { Avatar, Dropdown, TextInput } from "flowbite-react";
 import { useState } from "react";
 import UserManagement from "./UserManagement";
+import ProjectManagement from "./ProjectManagement";
 import { Cookies } from "react-cookie";
 import { useRouter } from "next/navigation";
 
 const Navbar: FC<{ active: boolean; onClick: any; user?: any }> = ({ active, onClick, user }) => {
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
+  const [isProjectManagementOpen, setIsProjectManagementOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const cookie = new Cookies();
   const router = useRouter();
@@ -94,6 +96,14 @@ const Navbar: FC<{ active: boolean; onClick: any; user?: any }> = ({ active, onC
                   User Management
                 </Dropdown.Item>
                 
+                <Dropdown.Item 
+                  onClick={() => setIsProjectManagementOpen(true)}
+                  className="text-white hover:bg-gray-700 flex items-center"
+                >
+                  <AiOutlineUser className="mr-2" />
+                  Project Management
+                </Dropdown.Item>
+                
                 <Dropdown.Item className="text-white hover:bg-gray-700">
                   Settings
                 </Dropdown.Item>
@@ -120,6 +130,11 @@ const Navbar: FC<{ active: boolean; onClick: any; user?: any }> = ({ active, onC
         isOpen={isUserManagementOpen} 
         onClose={() => setIsUserManagementOpen(false)} 
       />
+     
+     <ProjectManagement 
+       isOpen={isProjectManagementOpen} 
+       onClose={() => setIsProjectManagementOpen(false)} 
+     />
     </>
   );
 };

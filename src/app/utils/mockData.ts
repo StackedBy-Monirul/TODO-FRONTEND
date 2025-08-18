@@ -29,6 +29,29 @@ export const mockUsers = [
   }
 ];
 
+export const mockProjects = [
+  {
+    _id: "project1",
+    name: "Website Redesign",
+    color: "#3b82f6",
+    description: "Complete redesign of company website",
+    owner: "user1",
+    members: ["user1", "user2"],
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01")
+  },
+  {
+    _id: "project2",
+    name: "Mobile App",
+    color: "#10b981",
+    description: "New mobile application development",
+    owner: "user2",
+    members: ["user2", "user3"],
+    createdAt: new Date("2024-01-02"),
+    updatedAt: new Date("2024-01-02")
+  }
+];
+
 export const mockComments = [
   {
     _id: "comment1",
@@ -65,7 +88,8 @@ export const mockTodos = [
       { _id: "check2", text: "Design mockups", completed: false },
       { _id: "check3", text: "Implement responsive design", completed: false }
     ],
-    sorting: 1
+    sorting: 1,
+    project: "project1"
   },
   {
     _id: "todo2", 
@@ -82,7 +106,8 @@ export const mockTodos = [
       { _id: "check4", text: "Setup JWT middleware", completed: true },
       { _id: "check5", text: "Create login/register forms", completed: false }
     ],
-    sorting: 2
+    sorting: 2,
+    project: "project1"
   },
   {
     _id: "todo3",
@@ -96,7 +121,8 @@ export const mockTodos = [
     comments: [],
     assignedUsers: [mockUsers[2]],
     checklist: [],
-    sorting: 1
+    sorting: 1,
+    project: "project2"
   }
 ];
 
@@ -104,19 +130,19 @@ export const mockSections = [
   {
     _id: "section1",
     name: "To Do",
-    project_id: null,
+    project_id: "project1",
     user_id: "user1"
   },
   {
     _id: "section2", 
     name: "In Progress",
-    project_id: null,
+    project_id: "project1",
     user_id: "user1"
   },
   {
     _id: "section3",
     name: "Done",
-    project_id: null,
+    project_id: "project1",
     user_id: "user1"
   }
 ];
@@ -126,23 +152,33 @@ export const LocalStorageKeys = {
   USERS: 'trello_users',
   TODOS: 'trello_todos', 
   SECTIONS: 'trello_sections',
-  COMMENTS: 'trello_comments'
+  COMMENTS: 'trello_comments',
+  PROJECTS: 'trello_projects',
+  CURRENT_USER: 'trello_current_user',
+  AUTH_TOKEN: 'trello_auth_token'
 };
 
 export const initializeLocalStorage = () => {
   if (typeof window === 'undefined') return;
   
-  if (!localStorage.getItem(LocalStorageKeys.USERS)) {
-    localStorage.setItem(LocalStorageKeys.USERS, JSON.stringify(mockUsers));
-  }
-  if (!localStorage.getItem(LocalStorageKeys.TODOS)) {
-    localStorage.setItem(LocalStorageKeys.TODOS, JSON.stringify(mockTodos));
-  }
-  if (!localStorage.getItem(LocalStorageKeys.SECTIONS)) {
-    localStorage.setItem(LocalStorageKeys.SECTIONS, JSON.stringify(mockSections));
-  }
-  if (!localStorage.getItem(LocalStorageKeys.COMMENTS)) {
-    localStorage.setItem(LocalStorageKeys.COMMENTS, JSON.stringify(mockComments));
+  try {
+    if (!localStorage.getItem(LocalStorageKeys.USERS)) {
+      localStorage.setItem(LocalStorageKeys.USERS, JSON.stringify(mockUsers));
+    }
+    if (!localStorage.getItem(LocalStorageKeys.TODOS)) {
+      localStorage.setItem(LocalStorageKeys.TODOS, JSON.stringify(mockTodos));
+    }
+    if (!localStorage.getItem(LocalStorageKeys.SECTIONS)) {
+      localStorage.setItem(LocalStorageKeys.SECTIONS, JSON.stringify(mockSections));
+    }
+    if (!localStorage.getItem(LocalStorageKeys.COMMENTS)) {
+      localStorage.setItem(LocalStorageKeys.COMMENTS, JSON.stringify(mockComments));
+    }
+    if (!localStorage.getItem(LocalStorageKeys.PROJECTS)) {
+      localStorage.setItem(LocalStorageKeys.PROJECTS, JSON.stringify(mockProjects));
+    }
+  } catch (error) {
+    console.error('Error initializing localStorage:', error);
   }
 };
 
@@ -164,4 +200,31 @@ export const saveToLocalStorage = (key: string, data: any) => {
   } catch (error) {
     console.error('Error saving to localStorage:', error);
   }
+};
+
+export const generateId = () => `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+// Helper functions for mock data operations
+export const findUserById = (userId: string) => {
+  const users = getFromLocalStorage(LocalStorageKeys.USERS) || [];
+  return users.find((user: any) => user._id === userId);
+};
+
+export const updateTodoInStorage = (todoId: string, updates: any) => {
+  const todos = getFromLocalStorage(LocalStorageKeys.TODOS) || [];
+  const todoIndex = todos.findIndex((todo: any) => todo._id === todoId);
+  
+  if (todoIndex !== -1) {
+    todos[todoIndex] = { ...todos[todoIndex], ...updates, updatedAt: new Date() };
+    saveToLocalStorage(LocalStorageKeys.TODOS, todos);
+    return todos[todoIndex];
+  }
+  return null;
+};
+
+export const deleteTodoFromStorage = (todoId: string) => {
+  const todos = getFromLocalStorage(LocalStorageKeys.TODOS) || [];
+  const filteredTodos = todos.filter((todo: any) => todo._id !== todoId);
+  saveToLocalStorage(LocalStorageKeys.TODOS, filteredTodos);
+  return { id: todoId };
 };

@@ -23,9 +23,13 @@ interface todoInterface {
     text: string;
     completed: boolean;
   }[];
+  updatedAt?: Date;
+  createdAt?: Date;
 }
+
 interface dataMapInterface {
   id: string;
   todos: todoInterface[];
 }
+
 export type { todoInterface, dataMapInterface };

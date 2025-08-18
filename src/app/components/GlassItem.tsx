@@ -47,6 +47,10 @@ const GlassItem: FC<{
    const handleTodoUpdate = (updatedTodo: todoInterface) => {
       setData(updatedTodo);
       setName(updatedTodo.name);
+      // Trigger parent update if available
+      if (onUpdate) {
+         onUpdate(updatedTodo);
+      }
    };
 
    const getPriorityColor = (priority: string) => {

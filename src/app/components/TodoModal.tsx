@@ -105,7 +105,7 @@ const TodoModal: FC<TodoModalProps> = ({ isOpen, onClose, todo, onUpdate }) => {
             description,
             priority,
             dueDate: dueDate ? new Date(dueDate) : null,
-            assignedUsers: assignedUsers.map((user) => user?._id).filter(Boolean),
+            assignedUsers: assignedUsers,
             checklist,
          };
 
@@ -113,6 +113,7 @@ const TodoModal: FC<TodoModalProps> = ({ isOpen, onClose, todo, onUpdate }) => {
 
          if (response.status === 200) {
             const updatedTodo = Array.isArray(response.data.data) ? response.data.data[0] : response.data.data;
+            updatedTodo.assignedUsers = assignedUsers; // Ensure assigned users are preserved
             setCurrentTodo(updatedTodo);
             onUpdate(updatedTodo);
          }

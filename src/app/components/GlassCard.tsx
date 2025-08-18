@@ -5,6 +5,7 @@ import { AiFillEdit, AiOutlineFileAdd } from "react-icons/ai";
 import { BsThreeDots, BsTrashFill } from "react-icons/bs";
 import GlassItem from "./GlassItem";
 import { getAPI, postAPI } from "./Api";
+import { deleteAPI } from "./Api";
 import { todoInterface } from "../interfaces/todoInterface";
 import { Draggable, Droppable } from "@hello-pangea/dnd";
 
@@ -57,6 +58,20 @@ const GlassCard: FC<{
       update && update(oldData);
    };
 
+   const deleteSectionHandler = async () => {
+      if (!confirm("Are you sure you want to delete this section? All tasks in this section will also be deleted.")) return;
+      
+      try {
+         const response = await deleteAPI(`sections/${id}`, token?.token);
+         if (response.status === 200) {
+            // Notify parent component to remove this section
+            window.location.reload(); // Simple refresh for now
+         }
+      } catch (error) {
+         console.error("Error deleting section:", error);
+      }
+   };
+
    const handleClickOutside = (event: MouseEvent) => {
       if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
          setActive(false);
@@ -90,7 +105,7 @@ const GlassCard: FC<{
                            <span className="text-white">Edit</span>
                         </li>
                         <li className="px-5 flex items-center gap-2 py-3 cursor-pointer hover:bg-red-500/20 transition-colors text-red-400">
-                           <BsTrashFill className="text-white text-base" />
+                           <BsTrashFill className="text-red-400 text-base" onClick={deleteSectionHandler} />
                            <span>Delete</span>
                         </li>
                      </ul>
