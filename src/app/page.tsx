@@ -98,19 +98,17 @@ export default function Home() {
    }, []);
    return (
       <DragDropContext onDragEnd={ondragend}>
-         <Layout backgroundColor="#0b072d" activePage="home">
-            <Droppable droppableId="droppableCard" type="CARD" direction="horizontal">
-               {(provided, snapshot) => (
-                  <div className="whitespace-nowrap overflow-x-scroll overflow-y-hidden scrollbar pb-24 " ref={provided.innerRef} style={{ backgroundColor: snapshot.isDraggingOver ? "#00000042" : "transparent", height: `${mainHeight}px` }} {...provided.droppableProps}>
-                     {section.map((item: sectionInterface, index) => {
-                        const data = todos.find((todo) => todo.id.toString() === item._id?.toString());
-                        return <GlassCard title={item.name ? item.name : ""} id={item._id} user={user} index={index} key={item._id} todos={data?.todos} update={(e) => updateHandler(item._id, e)} height={mainHeight} />;
-                     })}
-                     {provided.placeholder} <AddSection newData={DataHandler} userData={user} />
-                  </div>
-               )}
-            </Droppable>
-         </Layout>
+         <Droppable droppableId="droppableCard" type="CARD" direction="horizontal">
+            {(provided, snapshot) => (
+               <div className="whitespace-nowrap overflow-x-scroll overflow-y-hidden scrollbar pb-24 " ref={provided.innerRef} style={{ backgroundColor: snapshot.isDraggingOver ? "#00000042" : "transparent", height: `${mainHeight}px` }} {...provided.droppableProps}>
+                  {section.map((item: sectionInterface, index) => {
+                     const data = todos.find((todo) => todo.id.toString() === item._id?.toString());
+                     return <GlassCard title={item.name ? item.name : ""} id={item._id} user={user} index={index} key={item._id} todos={data?.todos} update={(e) => updateHandler(item._id, e)} height={mainHeight} />;
+                  })}
+                  {provided.placeholder} <AddSection newData={DataHandler} userData={user} />
+               </div>
+            )}
+         </Droppable>
       </DragDropContext>
    );
 }
